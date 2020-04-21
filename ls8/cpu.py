@@ -1,5 +1,26 @@
 """CPU functionality."""
 
+# In `CPU`, add method `ram_read()` and `ram_write()` that access the RAM inside
+# the `CPU` object.
+
+# `ram_read()` should accept the address to read and return the value stored
+# there.
+
+# `ram_write()` should accept a value to write, and the address to write it to.
+
+# Inside the CPU, there are two internal registers used for memory operations:
+# the _Memory Address Register_ (MAR) and the _Memory Data Register_ (MDR). The
+# MAR contains the address that is being read or written to. The MDR contains
+# the data that was read or the data to write. You don't need to add the MAR or
+# MDR to your `CPU` class, but they would make handy parameter names for
+# `ram_read()` and `ram_write()`, if you wanted.
+
+# MAR is Memory Address Register; holds the memory address we're reading or writing.
+# MDR is Memory Data Register, holds the value to write or the value just read.
+
+# ram_read()
+
+
 import sys
 
 
@@ -20,26 +41,6 @@ class CPU:
         # * Instruction Register, contains a copy of the currently executing instruction
         self.ir = self.ram[self.pc]
 
-    # In `CPU`, add method `ram_read()` and `ram_write()` that access the RAM inside
-    # the `CPU` object.
-
-    # `ram_read()` should accept the address to read and return the value stored
-    # there.
-
-    # `ram_write()` should accept a value to write, and the address to write it to.
-
-    # Inside the CPU, there are two internal registers used for memory operations:
-    # the _Memory Address Register_ (MAR) and the _Memory Data Register_ (MDR). The
-    # MAR contains the address that is being read or written to. The MDR contains
-    # the data that was read or the data to write. You don't need to add the MAR or
-    # MDR to your `CPU` class, but they would make handy parameter names for
-    # `ram_read()` and `ram_write()`, if you wanted.
-
-    # MAR is Memory Address Register; holds the memory address we're reading or writing.
-    # MDR is Memory Data Register, holds the value to write or the value just read.
-
-    # ram_read()
-
     def ram_read(self, MAR):
         return self.ram[MAR]
 
@@ -49,24 +50,38 @@ class CPU:
 
     def load(self):
         """Load a program into memory."""
+        # arv_program_counter=1 #for implementing multiple programs in line
+
+        # Parse the CLI for submitted program commands
+        # program_file_test = sys.argv
+        program_file = sys.argv[1]
 
         address = 0
 
         # For now, we've just hardcoded a program:
+        with open(program_file) as pf:
+            for line in pf:
+                line = line.split('#')
+                line = line[0].strip()
+                if line == '':
+                    continue
+                self.ram[address] = int(line, base=2)
+                # print(type(int(line,base=2)))
+                address += 1
 
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010,  # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111,  # PRN R0
+        #     0b00000000,
+        #     0b00000001,  # HLT
+        # ]
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
