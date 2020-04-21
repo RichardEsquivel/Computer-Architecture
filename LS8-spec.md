@@ -205,7 +205,7 @@ registerA.
 Machine code:
 ```
 10101000 00000aaa 00000bbb
-A8 0a 0b
+A8 0a 0b #a is a register number and b is a register number, same as above, aaa and bbb are placeholders for registers that will be coming in.
 ```
 
 ### CALL register

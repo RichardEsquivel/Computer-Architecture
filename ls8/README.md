@@ -60,6 +60,8 @@ but you'll have to implement those three above instructions first!
 ## Step 0: IMPORTANT: inventory what is here!
 
 * Make a list of files here.
+-asm folder files with an asm assembler that consists of a parser for command line argv arguments and op codes along with the binary. Utilized for a stretch goal of a Curve Histogram. 
+-LS8 consists of a set of program files such as call, interrupt, CPU will be generalized to handle any of these program commands submitted from the user in a command line and operate the programs as requested. Can eventually consist of an ALU to operate mathematical functions has the R0-R7 registers implemented for 8 bit processor, and RAM implemented in a way to represent 256 bytes total memory. CPU has current commands implemented such as trace to help with debugging and displaying what is occuring during particular sequences of commands.
 * Write a short 3-10-word description of what each file does.
 * Note what has been implemented, and what hasn't.
 * Read this whole file.
