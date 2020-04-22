@@ -110,7 +110,7 @@ value of the stack pointer.
 This is the workhorse function of the entire processor. It's the most difficult
 part to write.
 
-It needs to read the memory address that's stored in register `PC`, and store
+It needs to read the memory address that's stored in register `PC`, and store0
 that result in `IR`, the _Instruction Register_. This can just be a local
 variable in `run()`.
 

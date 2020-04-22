@@ -15,4 +15,4 @@ if len(sys.argv) > 1:
     cpu.load(program)
     cpu.run()
 else:
-    print("You must pass a program argument within the command line.")
+    sys.exit("You must pass a program argument within the command line.")
