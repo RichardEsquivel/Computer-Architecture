@@ -3,11 +3,6 @@
 import sys
 
 
-OP_LDI = 0b10000010
-OP_PRN = 0b01000111
-OP_MUL = 0b10100010
-OP_HLT = 0b00000001
-
 
 class CPU:
     """Main CPU class."""
@@ -25,12 +20,32 @@ class CPU:
         self.pc = 0  # * Program Counter, address of the currently executing instruction.  what do i initialize this to?
         # * Instruction Register, contains a copy of the currently executing instruction
         self.ir = self.ram[self.pc]
+
+        self.address = 0
+
+        # Stack Pointer
+        self.sp = 7  # Used to refer to Register 7
+        # Starting ram index per spec, 244
+        self.sp_mem_index = 0xF4
+        # Register 7        assigned to STARTING memory[index] 244(0xF4) for STACK processes PUSH/POP
+        self.reg[self.sp] = self.ram[self.sp_mem_index]
+
+        # Program Machine Codes
+        self.OP_LDI = 0b10000010
+        self.OP_PUSH = 0b01000101
+        self.OP_POP = 0b01000110
+        self.OP_PRN = 0b01000111
+        self.OP_MUL = 0b10100010
+        self.OP_HLT = 0b00000001
+
         # Dispatch Table - Beautifying RUN:
         self.dispatchtable = {}
-        self.dispatchtable[OP_LDI] = self.handle_LDI
-        self.dispatchtable[OP_PRN] = self.handle_PRN
-        self.dispatchtable[OP_MUL] = self.handle_MUL
-        self.dispatchtable[OP_HLT] = self.handle_HLT
+        self.dispatchtable[self.OP_LDI] = self.handle_LDI
+        self.dispatchtable[self.OP_PUSH] = self.handle_PUSH
+        self.dispatchtable[self.OP_POP] = self.handle_POP
+        self.dispatchtable[self.OP_PRN] = self.handle_PRN
+        self.dispatchtable[self.OP_MUL] = self.handle_MUL
+        self.dispatchtable[self.OP_HLT] = self.handle_HLT
 
     # In `CPU`, add method `ram_read()` and `ram_write()` that access the RAM inside
     # the `CPU` object.
@@ -61,17 +76,15 @@ class CPU:
 
     def load(self, program_file):
         """Load a program into memory."""
-        address = 0
-
         with open(program_file) as pf:
             for line in pf:
                 line = line.split('#')
                 line = line[0].strip()
                 if line == '':
                     continue
-                self.ram[address] = int(line, base=2)
+                self.ram[self.address] = int(line, base=2)
                 # print(type(int(line, base=2)))
-                address += 1
+                self.address += 1
 
         # For now, we've just hardcoded a program:
 
@@ -93,11 +106,16 @@ class CPU:
         """ALU operations."""
 
         if op == "ADD":
+            # v1 that simply assigns
             self.reg[reg_a] += self.reg[reg_b]
+
+            # v2.  manages the bounds of the result to maintain the result under 8 bits (i.e. 00000000)
+            # self.reg[reg_a] = (self.reg[reg_a] + self.reg[reg_b]) & 0xFF
 
         elif op == "MUL":
             # print(f"multiplying {self.reg[reg_a]} x {self.reg[reg_b]} which equals {self.reg[reg_a] * self.reg[reg_b]}")
             self.reg[reg_a] *= self.reg[reg_b]
+            # self.reg[reg_a] = (self.reg[reg_a] * self.reg[reg_b]) & 0xFF
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -126,8 +144,34 @@ class CPU:
         self.reg[opa] = opb
         self.pc += increment
 
+    # register
+    [
+        # pop direction
+        # assign register[0-2] to be equal to memory[memoryindexinhex]
+    ]
+
+    # Memory
+    [
+        # push direction
+        # assign memory[memoryindexinhex] to be = to something in register[0-2]
+        # starting at memory[244]
+    ]
+
+    def handle_PUSH(self, increment, opa):
+        self.sp_mem_index -= 1
+        self.ram[self.sp_mem_index] = self.reg[opa]
+
+        self.pc += increment
+
+    def handle_POP(self, increment, opa):
+        self.reg[opa] = self.ram[self.sp_mem_index]
+
+        self.sp_mem_index += 1
+        self.pc += increment
+
     def handle_PRN(self, increment, opa):
-        print("Register[0]!!!: ", hex(self.reg[opa]).lstrip("0x"))
+        # print(f"Register[{opa}]!!!: ", hex(self.reg[opa]).lstrip("0x"))
+        print(f"Register[{opa}]!!!: ", self.reg[opa])
         self.pc += increment
 
     def handle_MUL(self, increment, opa, opb):
@@ -148,25 +192,39 @@ class CPU:
             operand_a = self.ram_read(self.pc + 1)  # address 1   # R0
             operand_b = self.ram_read(self.pc + 2)  # address 2   # 8
 
-            # track the instruction length to increment self.pc dynamically. Binary isolator of length 6 trailing 0's from 11 will allow us to then shift the two leading values xx000000 and add 1  to the length of instruction to reach the position of the next program within memory as lentgh of instruction is 1 less than the length to the next program command.
+            # track the instruction length to increment self.pc dynamically.
+            # 1. `AND` the Instruction against binary isolator
+            #   Binary Isolator uses a 1 in the location of what you want to keep
+            # i.e. if instruction or self.ir in this case is 01000111, the 01 at the beginning of the binary value tells us how many arguments and operand values follow in the instruction file(see .ls8 file). So we would use 11000000 then do (01000111 & 11000000) to get the result 0f 01000000 then do step 2
+            # 2. `>>` Right Shift the result of the `&` operation.
+            # 3. Increment 1 to move to the NEXT instruction
             len_instruct = ((self.ir & 11000000) >> 6) + 1
-            # print("length of instructions: ", len_instruct)
 
             # LDI
-            if self.ir == OP_LDI:
-                self.dispatchtable[self.ir](len_instruct, operand_a, operand_b)
+            if self.ir == self.OP_LDI:
+                self.dispatchtable[self.OP_LDI](
+                    len_instruct, operand_a, operand_b)
+
+            # PUSH
+            elif self.ir == self.OP_PUSH:
+                self.dispatchtable[self.OP_PUSH](len_instruct, operand_a)
+
+            # POP
+            elif self.ir == self.OP_POP:
+                self.dispatchtable[self.OP_POP](len_instruct, operand_a)
 
             # PRN
-            elif self.ir == OP_PRN:
-                self.dispatchtable[OP_PRN](len_instruct, operand_a)
+            elif self.ir == self.OP_PRN:
+                self.dispatchtable[self.OP_PRN](len_instruct, operand_a)
 
             # MUL
-            elif self.ir == OP_MUL:
-                self.dispatchtable[self.ir](len_instruct, operand_a, operand_b)
+            elif self.ir == self.OP_MUL:
+                self.dispatchtable[self.OP_MUL](
+                    len_instruct, operand_a, operand_b)
 
             # HLT
-            elif self.ir == OP_HLT:
-                self.dispatchtable[OP_HLT]()
+            elif self.ir == self.OP_HLT:
+                self.dispatchtable[self.OP_HLT]()
 
             else:
                 print("Unknown Instruction")
