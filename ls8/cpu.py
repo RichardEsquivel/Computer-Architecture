@@ -40,6 +40,10 @@ class CPU:
         self.OP_ADD = 0b10100000
         self.OP_MUL = 0b10100010
         self.OP_HLT = 0b00000001
+        self.OP_CMP = 0b10100111
+        self.OP_JMP = 0b01010100
+        self.OP_JNE = 0b01010110
+        self.OP_JEQ = 0b01010101
 
         # Dispatch Table - Beautifying RUN  # likely a better way to dynamically do this.
         self.dispatchtable = {}
@@ -51,7 +55,10 @@ class CPU:
         self.dispatchtable[self.OP_PRN] = self.handle_PRN
         self.dispatchtable[self.OP_ADD] = self.handle_ADD
         self.dispatchtable[self.OP_MUL] = self.handle_MUL
-        self.dispatchtable[self.OP_HLT] = self.handle_HLT
+        self.dispatchtable[self.OP_CMP] = self.handle_CMP
+        self.dispatchtable[self.OP_JMP] = self.handle_JMP
+        self.dispatchtable[self.OP_JNE] = self.handle_JNE
+        self.dispatchtable[self.OP_JEQ] = self.handle_JEQ
 
     # In `CPU`, add method `ram_read()` and `ram_write()` that access the RAM inside
     # the `CPU` object.
@@ -213,9 +220,12 @@ E Equal: during a CMP, set to 1 if registerA is equal to registerB, zero otherwi
             # 3. Increment 1 to move to the NEXT instruction
             len_instruct = ((self.ir & 11000000) >> 6) + 1
             # Checking for jump instructions JMP JEQ JNE
-            jump_instruct
+            jump_instruct = [JMP, JNE, JEQ]
             # Branchtable/Dispatchtable example version...?  Not working as expected.
-            if len_instruct == 3:
+
+           if self.ir= jump_instruct:
+               self.dispatchtable[self.ir](operand_a,operand_a)
+            elif len_instruct == 3:
                 self.dispatchtable[self.ir](len_instruct, operand_a, operand_b)
             elif len_instruct == 2:
                 self.dispatchtable[self.ir](len_instruct, operand_a)
