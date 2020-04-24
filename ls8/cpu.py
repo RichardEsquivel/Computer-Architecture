@@ -16,7 +16,8 @@ class CPU:
         # since each 0 in self.reg is a bit and each self.reg contains eight 0, that is equal to 1 byte.  so the ram should only be permitted a max of 256 bytes by doing self.reg * 256???
         self.ram = [0] * 256
         # Internal Registers
-        self.pc = 0  # * Program Counter, address of the currently executing instruction.  what do i initialize this to?
+        self.pc = 0
+      # * Program Counter, address of the currently executing instruction.  what do i initialize this to?
         # * Instruction Register, contains a copy of the currently executing instruction
         self.ir = self.ram[self.pc]
         # Establish a lookup dictionary for the flags after CMP function can utilize value lookup from self for JNE and JEQ jumps
@@ -139,7 +140,7 @@ class CPU:
     def trace(self):
 
         print(f"TRACE: %02X | %02X %02X %02X |" % (
-            self.pc,
+            # self.pc,
             # self.fl,
             # self.ie,
             self.ram_read(self.pc),
@@ -187,37 +188,38 @@ class CPU:
 
         self.pc = ret_address
 
-    def handle_PRN(self, increment, opa):
+    def handle_PRN(self, increment, opa=None):
         # print(f"Register[{opa}]!!!: ", hex(self.reg[opa]).lstrip("0x"))
         print(f"Register[{opa}]!!!: ", self.reg[opa])
         self.pc += increment
 
-    def handle_MUL(self, increment, opa, opb):
+    def handle_MUL(self, increment, opa=None, opb=None):
         self.alu("MUL", opa, opb)
         self.pc += increment
 
-    def handle_ADD(self, increment, opa, opb):
+    def handle_ADD(self, increment, opa=None, opb=None):
         self.alu("ADD", opa, opb)
         self.pc += increment
 
-    def handle_CMP(self, increment, opa, opb):
+    def handle_CMP(self, increment, opa=None, opb=None):
         self.alu("CMP", opa, opb)
         self.pc += increment
 
-    def handle_JMP(self, opa, opb):
+    def handle_JMP(self, increment, opa=None):
         self.pc = self.reg[opa]
+        self.pc += increment
 
-    def handle_JEQ(self, opa, opb):
+    def handle_JEQ(self, increment, opa=None):
         if self.flags['E'] == 1:
             self.pc = self.reg[opa]
         else:
-            self.pc += 2
+            self.pc += increment
 
-    def handle_JNE(self, opa, opb):
+    def handle_JNE(self, increment, opa=None):
         if self.flags['E'] == 0:
             self.pc = self.reg[opa]
         else:
-            self.pc += 2
+            self.pc += increment
 
     def handle_HLT(self):
         sys.exit("EXITING!")
@@ -227,7 +229,7 @@ class CPU:
     def run(self):
 
         while True:
-            self.trace()
+            # self.trace()
             self.ir = self.ram_read(self.pc)  # address 0
             operand_a = self.ram_read(self.pc + 1)  # address 1   # R0
             operand_b = self.ram_read(self.pc + 2)  # address 2   # 8
