@@ -103,7 +103,7 @@ class CPU:
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
         a_value = self.reg[reg_a]
-        b_value = self.reg[reg_a]
+        b_value = self.reg[reg_b]
         if op == "ADD":
             # v1 that simply assigns
             self.reg[reg_a] += self.reg[reg_b]
@@ -114,29 +114,29 @@ class CPU:
         elif op == "MUL":
             # print(f"multiplying {self.reg[reg_a]} x {self.reg[reg_b]} which equals {self.reg[reg_a] * self.reg[reg_b]}")
             self.reg[reg_a] *= self.reg[reg_b]
-            # self.reg[reg_a] = (self.reg[reg_a] * self.reg[reg_b]) & 0xFF
+
+        # self.reg[reg_a] = (self.reg[reg_a] * self.reg[reg_b]) & 0xFF
         # establish compare function according to guidelines
-        '''The flags register FL holds the current flags status. These flags can change based on the operands given to the CMP opcode.
-
-The register is made up of 8 bits. If a particular bit is set, that flag is "true".
-
-FL bits: 00000LGE
-
-L Less-than: during a CMP, set to 1 if registerA is less than registerB, zero otherwise.
-G Greater-than: during a CMP, set to 1 if registerA is greater than registerB, zero otherwise.
-E Equal: during a CMP, set to 1 if registerA is equal to registerB, zero otherwise.
-        '''
         # Compare through an else-if chain will set the flags in established dictionary to determine jumps for JNE and JEQ following instructions
-        elif op = "CMP":
+        # Store value in dictionary keys to be checked for later if E= 1 then two values in reg a and b compared are established to be equal etc. L is for value compare of less than truth value of 1 or 0 and G for greater than comparision.
+        elif op == "CMP":
+            if a_value == b_value:
+                self.flags['E'] = 1
+            else:
+                self.flags['E'] = 0
+            if a_value < b_value:
+                self.flags['L'] = 1
+            else:
+                self.flags['L'] = 0
+            if a_value > b_value:
+                self.flags['G'] = 1
+            else:
+                self.flags['G'] = 0
 
         else:
             raise Exception("Unsupported ALU operation")
 
     def trace(self):
-        """
-        Handy function to print out the CPU state. You might want to call this
-        from run() if you need help debugging.
-        """
 
         print(f"TRACE: %02X | %02X %02X %02X |" % (
             self.pc,
@@ -153,6 +153,7 @@ E Equal: during a CMP, set to 1 if registerA is equal to registerB, zero otherwi
         print()
 
     # ************** Beauty OP Functions **************
+
     def handle_LDI(self, increment, opa, opb):
         self.reg[opa] = opb
         self.pc += increment
@@ -199,16 +200,34 @@ E Equal: during a CMP, set to 1 if registerA is equal to registerB, zero otherwi
         self.alu("ADD", opa, opb)
         self.pc += increment
 
+    def handle_CMP(self, increment, opa, opb):
+        self.alu("CMP", opa, opb)
+        self.pc += increment
+
+    def handle_JMP(self, opa, opb):
+        self.pc = self.reg[opa]
+
+    def handle_JEQ(self, opa, opb):
+        if self.flags['E'] == 1:
+            self.pc = self.reg[opa]
+        else:
+            self.pc += 2
+
+    def handle_JNE(self, opa, opb):
+        if self.flags['E'] == 0:
+            self.pc = self.reg[opa]
+        else:
+            self.pc += 2
+
     def handle_HLT(self):
         sys.exit("EXITING!")
 
     # ************** END Beauty Functions **************
 
     def run(self):
-        """Run the CPU."""
 
         while True:
-            # self.trace()
+            self.trace()
             self.ir = self.ram_read(self.pc)  # address 0
             operand_a = self.ram_read(self.pc + 1)  # address 1   # R0
             operand_b = self.ram_read(self.pc + 2)  # address 2   # 8
@@ -220,12 +239,12 @@ E Equal: during a CMP, set to 1 if registerA is equal to registerB, zero otherwi
             # 3. Increment 1 to move to the NEXT instruction
             len_instruct = ((self.ir & 11000000) >> 6) + 1
             # Checking for jump instructions JMP JEQ JNE
-            jump_instruct = [JMP, JNE, JEQ]
+            # jump_instruct = [JMP, JNE, JEQ]
             # Branchtable/Dispatchtable example version...?  Not working as expected.
 
-           if self.ir= jump_instruct:
-               self.dispatchtable[self.ir](operand_a,operand_a)
-            elif len_instruct == 3:
+            # if self.ir in jump_instruct:
+            #     self.dispatchtable[self.ir](operand_a, operand_a)
+            if len_instruct == 3:
                 self.dispatchtable[self.ir](len_instruct, operand_a, operand_b)
             elif len_instruct == 2:
                 self.dispatchtable[self.ir](len_instruct, operand_a)
