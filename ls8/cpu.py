@@ -19,7 +19,8 @@ class CPU:
         self.pc = 0  # * Program Counter, address of the currently executing instruction.  what do i initialize this to?
         # * Instruction Register, contains a copy of the currently executing instruction
         self.ir = self.ram[self.pc]
-
+        # Establish a lookup dictionary for the flags after CMP function can utilize value lookup from self for JNE and JEQ jumps
+        self.flags = {}
         self.address = 0
 
         # Stack Pointer
@@ -94,7 +95,8 @@ class CPU:
     # The computer's ALU is responsible for processing mathematical calculations.
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
-
+        a_value = self.reg[reg_a]
+        b_value = self.reg[reg_a]
         if op == "ADD":
             # v1 that simply assigns
             self.reg[reg_a] += self.reg[reg_b]
@@ -106,6 +108,20 @@ class CPU:
             # print(f"multiplying {self.reg[reg_a]} x {self.reg[reg_b]} which equals {self.reg[reg_a] * self.reg[reg_b]}")
             self.reg[reg_a] *= self.reg[reg_b]
             # self.reg[reg_a] = (self.reg[reg_a] * self.reg[reg_b]) & 0xFF
+        # establish compare function according to guidelines
+        '''The flags register FL holds the current flags status. These flags can change based on the operands given to the CMP opcode.
+
+The register is made up of 8 bits. If a particular bit is set, that flag is "true".
+
+FL bits: 00000LGE
+
+L Less-than: during a CMP, set to 1 if registerA is less than registerB, zero otherwise.
+G Greater-than: during a CMP, set to 1 if registerA is greater than registerB, zero otherwise.
+E Equal: during a CMP, set to 1 if registerA is equal to registerB, zero otherwise.
+        '''
+        # Compare through an else-if chain will set the flags in established dictionary to determine jumps for JNE and JEQ following instructions
+        elif op = "CMP":
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -196,7 +212,8 @@ class CPU:
             # 2. `>>` Right Shift the result of the `&` operation.
             # 3. Increment 1 to move to the NEXT instruction
             len_instruct = ((self.ir & 11000000) >> 6) + 1
-
+            # Checking for jump instructions JMP JEQ JNE
+            jump_instruct
             # Branchtable/Dispatchtable example version...?  Not working as expected.
             if len_instruct == 3:
                 self.dispatchtable[self.ir](len_instruct, operand_a, operand_b)
@@ -206,4 +223,3 @@ class CPU:
                 self.dispatchtable[self.ir]()
             else:
                 print("Unknown Instruction")
-
