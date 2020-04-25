@@ -207,8 +207,8 @@ class CPU:
         self.pc += increment
 
     def handle_JMP(self, increment, opa=None):
-        self.pc = self.reg[opa]
-        self.pc += increment
+        self.address = self.reg[opa]
+        self.pc = self.address
 
     def handle_JEQ(self, increment, opa=None):
         if self.flags['E'] == 1:
@@ -252,6 +252,6 @@ class CPU:
             elif len_instruct == 2:
                 self.dispatchtable[self.ir](len_instruct, operand_a)
             elif len_instruct == 1:
-                self.dispatchtable[self.ir](self)
+                self.dispatchtable[self.ir]()
             else:
                 print("Unknown Instruction")
