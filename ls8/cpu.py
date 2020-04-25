@@ -60,6 +60,7 @@ class CPU:
         self.dispatchtable[self.OP_JMP] = self.handle_JMP
         self.dispatchtable[self.OP_JNE] = self.handle_JNE
         self.dispatchtable[self.OP_JEQ] = self.handle_JEQ
+        self.dispatchtable[self.OP_HLT] = self.handle_HLT
 
     # In `CPU`, add method `ram_read()` and `ram_write()` that access the RAM inside
     # the `CPU` object.
@@ -140,7 +141,7 @@ class CPU:
     def trace(self):
 
         print(f"TRACE: %02X | %02X %02X %02X |" % (
-            # self.pc,
+            self.pc,
             # self.fl,
             # self.ie,
             self.ram_read(self.pc),
@@ -229,7 +230,7 @@ class CPU:
     def run(self):
 
         while True:
-            # self.trace()
+            self.trace()
             self.ir = self.ram_read(self.pc)  # address 0
             operand_a = self.ram_read(self.pc + 1)  # address 1   # R0
             operand_b = self.ram_read(self.pc + 2)  # address 2   # 8
@@ -251,6 +252,6 @@ class CPU:
             elif len_instruct == 2:
                 self.dispatchtable[self.ir](len_instruct, operand_a)
             elif len_instruct == 1:
-                self.dispatchtable[self.ir]()
+                self.dispatchtable[self.ir](self)
             else:
                 print("Unknown Instruction")
