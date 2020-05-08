@@ -16,10 +16,12 @@ class CPU:
         # since each 0 in self.reg is a bit and each self.reg contains eight 0, that is equal to 1 byte.  so the ram should only be permitted a max of 256 bytes by doing self.reg * 256???
         self.ram = [0] * 256
         # Internal Registers
-        self.pc = 0  # * Program Counter, address of the currently executing instruction.  what do i initialize this to?
+        self.pc = 0
+      # * Program Counter, address of the currently executing instruction.  what do i initialize this to?
         # * Instruction Register, contains a copy of the currently executing instruction
         self.ir = self.ram[self.pc]
-
+        # Establish a lookup dictionary for the flags after CMP function can utilize value lookup from self for JNE and JEQ jumps
+        self.flags = {}
         self.address = 0
 
         # Stack Pointer
@@ -39,6 +41,10 @@ class CPU:
         self.OP_ADD = 0b10100000
         self.OP_MUL = 0b10100010
         self.OP_HLT = 0b00000001
+        self.OP_CMP = 0b10100111
+        self.OP_JMP = 0b01010100
+        self.OP_JNE = 0b01010110
+        self.OP_JEQ = 0b01010101
 
         # Dispatch Table - Beautifying RUN  # likely a better way to dynamically do this.
         self.dispatchtable = {}
@@ -50,6 +56,10 @@ class CPU:
         self.dispatchtable[self.OP_PRN] = self.handle_PRN
         self.dispatchtable[self.OP_ADD] = self.handle_ADD
         self.dispatchtable[self.OP_MUL] = self.handle_MUL
+        self.dispatchtable[self.OP_CMP] = self.handle_CMP
+        self.dispatchtable[self.OP_JMP] = self.handle_JMP
+        self.dispatchtable[self.OP_JNE] = self.handle_JNE
+        self.dispatchtable[self.OP_JEQ] = self.handle_JEQ
         self.dispatchtable[self.OP_HLT] = self.handle_HLT
 
     # In `CPU`, add method `ram_read()` and `ram_write()` that access the RAM inside
@@ -94,7 +104,8 @@ class CPU:
     # The computer's ALU is responsible for processing mathematical calculations.
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
-
+        a_value = self.reg[reg_a]
+        b_value = self.reg[reg_b]
         if op == "ADD":
             # v1 that simply assigns
             self.reg[reg_a] += self.reg[reg_b]
@@ -105,15 +116,29 @@ class CPU:
         elif op == "MUL":
             # print(f"multiplying {self.reg[reg_a]} x {self.reg[reg_b]} which equals {self.reg[reg_a] * self.reg[reg_b]}")
             self.reg[reg_a] *= self.reg[reg_b]
-            # self.reg[reg_a] = (self.reg[reg_a] * self.reg[reg_b]) & 0xFF
+
+        # self.reg[reg_a] = (self.reg[reg_a] * self.reg[reg_b]) & 0xFF
+        # establish compare function according to guidelines
+        # Compare through an else-if chain will set the flags in established dictionary to determine jumps for JNE and JEQ following instructions
+        # Store value in dictionary keys to be checked for later if E= 1 then two values in reg a and b compared are established to be equal etc. L is for value compare of less than truth value of 1 or 0 and G for greater than comparision.
+        elif op == "CMP":
+            if a_value == b_value:
+                self.flags['E'] = 1
+            else:
+                self.flags['E'] = 0
+            if a_value < b_value:
+                self.flags['L'] = 1
+            else:
+                self.flags['L'] = 0
+            if a_value > b_value:
+                self.flags['G'] = 1
+            else:
+                self.flags['G'] = 0
+
         else:
             raise Exception("Unsupported ALU operation")
 
     def trace(self):
-        """
-        Handy function to print out the CPU state. You might want to call this
-        from run() if you need help debugging.
-        """
 
         print(f"TRACE: %02X | %02X %02X %02X |" % (
             self.pc,
@@ -130,6 +155,7 @@ class CPU:
         print()
 
     # ************** Beauty OP Functions **************
+
     def handle_LDI(self, increment, opa, opb):
         self.reg[opa] = opb
         self.pc += increment
@@ -163,18 +189,38 @@ class CPU:
 
         self.pc = ret_address
 
-    def handle_PRN(self, increment, opa):
+    def handle_PRN(self, increment, opa=None):
         # print(f"Register[{opa}]!!!: ", hex(self.reg[opa]).lstrip("0x"))
         print(f"Register[{opa}]!!!: ", self.reg[opa])
         self.pc += increment
 
-    def handle_MUL(self, increment, opa, opb):
+    def handle_MUL(self, increment, opa=None, opb=None):
         self.alu("MUL", opa, opb)
         self.pc += increment
 
-    def handle_ADD(self, increment, opa, opb):
+    def handle_ADD(self, increment, opa=None, opb=None):
         self.alu("ADD", opa, opb)
         self.pc += increment
+
+    def handle_CMP(self, increment, opa=None, opb=None):
+        self.alu("CMP", opa, opb)
+        self.pc += increment
+
+    def handle_JMP(self, increment, opa=None):
+        self.address = self.reg[opa]
+        self.pc = self.address
+
+    def handle_JEQ(self, increment, opa=None):
+        if self.flags['E'] == 1:
+            self.pc = self.reg[opa]
+        else:
+            self.pc += increment
+
+    def handle_JNE(self, increment, opa=None):
+        if self.flags['E'] == 0:
+            self.pc = self.reg[opa]
+        else:
+            self.pc += increment
 
     def handle_HLT(self):
         sys.exit("EXITING!")
@@ -182,10 +228,9 @@ class CPU:
     # ************** END Beauty Functions **************
 
     def run(self):
-        """Run the CPU."""
 
         while True:
-            # self.trace()
+            self.trace()
             self.ir = self.ram_read(self.pc)  # address 0
             operand_a = self.ram_read(self.pc + 1)  # address 1   # R0
             operand_b = self.ram_read(self.pc + 2)  # address 2   # 8
@@ -196,8 +241,12 @@ class CPU:
             # 2. `>>` Right Shift the result of the `&` operation.
             # 3. Increment 1 to move to the NEXT instruction
             len_instruct = ((self.ir & 11000000) >> 6) + 1
-
+            # Checking for jump instructions JMP JEQ JNE
+            # jump_instruct = [JMP, JNE, JEQ]
             # Branchtable/Dispatchtable example version...?  Not working as expected.
+
+            # if self.ir in jump_instruct:
+            #     self.dispatchtable[self.ir](operand_a, operand_a)
             if len_instruct == 3:
                 self.dispatchtable[self.ir](len_instruct, operand_a, operand_b)
             elif len_instruct == 2:
@@ -206,4 +255,3 @@ class CPU:
                 self.dispatchtable[self.ir]()
             else:
                 print("Unknown Instruction")
-
